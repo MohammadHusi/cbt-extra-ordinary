@@ -1,0 +1,51 @@
+services:
+  cbt-db:
+    image: postgres:15-alpine
+    container_name: cbt-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-exo}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      TZ: Asia/Jakarta
+    volumes:
+      - cbt-db-data:/var/lib/postgresql/data
+      # Opsional: Restore database awal otomatis jika diletakkan di init folder
+      - ./exo-dump-master.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - cbt-network
+
+  cbt-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cbt-app
+    restart: always
+    depends_on:
+      - cbt-db
+    environment:
+      - SERVER_PORT=9988
+      - DB_HOST=cbt-db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-exo}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASS=${DB_PASS:-postgres}
+      - TZ=Asia/Jakarta
+      - STORAGE_PATH=/app/storage
+      # License key dari ecosystem.ekstraordinary.com
+      - SERVER_SECRET_LICENSE_KEY=${SERVER_SECRET_LICENSE_KEY:-}
+    volumes:
+      # Persistent storage agar file upload/data peserta tidak hilang saat redeploy
+      - cbt-storage:/app/storage
+    ports:
+      - "9988:9988"
+    networks:
+      - cbt-network
+
+volumes:
+  cbt-db-data:
+  cbt-storage:
+
+networks:
+  cbt-network:
+    driver: bridge

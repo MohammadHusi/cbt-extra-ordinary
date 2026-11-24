@@ -1,0 +1,4 @@
+# Abaikan direktori git dan arsitektur lain
+.git
+main-arm64
+
